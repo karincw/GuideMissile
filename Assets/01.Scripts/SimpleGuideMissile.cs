@@ -2,9 +2,10 @@ using Karin.PoolingSystem;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 [RequireComponent(typeof(Rigidbody))]
-public class GuideMissile : Poolable
+public class SimpleGuideMissile : Poolable
 {
     Rigidbody rigid;
 
@@ -41,8 +42,8 @@ public class GuideMissile : Poolable
     [Header("유도 속성값")]
     [Tooltip("각도 오차 1회당 수정할각도")]
     [SerializeField] private float changeValue;
-    [Tooltip("각도의 오차에 비례하여 증가시킬 값 ChangeValue / ChangePersent")]
-    [SerializeField] private float changePersent = 5f;
+    [Tooltip("회전속도")]
+    [SerializeField] private float RotationSpeed = 2.0f;
     [Tooltip("찾은 물체의 각도")]
     [SerializeField] private float radius;
 
@@ -75,55 +76,22 @@ public class GuideMissile : Poolable
         }
         else
         {
+
             currentTarget = FindTarget(currentTarget, out radius);
             if (currentTarget == null || currentTarget.gameObject.activeInHierarchy == false) return;
-            Debug.Log(currentTarget);
-            Debug.Log("찾음");
 
-            Vector3 targetX = currentTarget.transform.position;
-            targetX.x = 0;
-            Vector3 myX = transform.position;
-            myX.x = 0;
-            Vector3 targetY = currentTarget.transform.position;
-            targetY.y = 0;
-            Vector3 myY = transform.position;
-            myX.y = 0;
-
-            Vector3 cross = Vector3.Cross(targetY, myY);
-            float crossValue = Vector3.Dot(cross, transform.up);
-
-            
-            if (crossValue > 0f)
-            {
-                transform.Rotate(new Vector3(0f, 0f, +changeValue * radius / changePersent));
-                moveVector = transform.up;
-            }
-            else if (crossValue < 0f)
-            {
-                transform.Rotate(new Vector3(0f, 0f, -changeValue * radius / changePersent));
-                moveVector = transform.up;
-            }
-            else
-            {
-
-            }
-
-            Vector3 cross2 = Vector3.Cross(targetX, myX);
-            float crossValue2 = Vector3.Dot(cross2, transform.forward);
-            Debug.Log(cross2);
-
+            Vector3 dir = currentTarget.position - transform.position;
+            Quaternion targetRotation = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, RotationSpeed * Time.deltaTime);
 
         }
+
+        transform.Translate(moveVector * moveSpeed * Time.deltaTime);
     }
 
     public void SetMoveVector()
     {
-        moveVector = transform.up;
-    }
-
-    private void FixedUpdate()
-    {
-        rigid.velocity = moveVector * Time.fixedDeltaTime * moveSpeed;
+        moveVector = transform.forward;
     }
 
     private Transform FindTarget(Transform target, out float Radius)
